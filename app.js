@@ -1,5 +1,7 @@
 const { App, subtype } = require("@slack/bolt");
 const dotenv = require("dotenv");
+const { extractTypeOfExpense, extractDate } = require("./helper/extractValues");
+const { makeObj } = require("./helper/makeObj");
 dotenv.config();
 const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
 const slackToken = process.env.SLACK_TOKEN;
@@ -10,8 +12,9 @@ const app = new App({
   signingSecret: slackSigningSecret,
 });
 
+const data = [];
 app.message("start", async ({ message, say }) => {
-  console.log("hi");
+  //console.log("hi");
   await say({
     blocks: [
       {
@@ -74,7 +77,10 @@ app.message("start", async ({ message, say }) => {
 
 app.action("type_of_expense", async ({ ack, say, body, client, logger }) => {
   await ack();
-  console.log(body);
+  // console.log(body);
+  //console.log("views state values", views.state.values);
+  // console.log("body state values", body.state.values);
+  data.push(extractTypeOfExpense(body.state.values));
   await say({
     blocks: [
       {
@@ -100,18 +106,23 @@ app.action("type_of_expense", async ({ ack, say, body, client, logger }) => {
 });
 app.action("datepicker-action", async ({ ack, say, body, client, logger }) => {
   await ack();
-  console.log("event2", body);
+  //console.log("event2", body);
+  data.push(extractDate(body.state.values));
   await say(
     "Please enter the description of the product (eg Printer for Business)"
   );
   app.message(/^[a-zA-Z ]+$/, async ({ message, say }) => {
-    console.log(message);
+    //console.log(message);
+    data.push(message.text);
     await say("Enter the price");
+    // console.log(data);
     app.message(
       /^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)$/,
       async ({ message, say }) => {
-        console.log(message);
+        //console.log(message);
+        data.push(message.text);
         await say("Upload the receipt");
+        makeObj(data);
       }
     );
   });
