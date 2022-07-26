@@ -1,0 +1,43 @@
+display_information:
+  name: ProjectBot
+  description: bot slack
+  background_color: "#2c2f38"
+features:
+  app_home:
+    home_tab_enabled: true
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: true
+  bot_user:
+    display_name: ProjectBot
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - calls:write
+      - chat:write
+      - im:history
+      - im:read
+      - incoming-webhook
+      - im:write
+      - channels:read
+      - channels:history
+      - groups:history
+      - mpim:history
+      - commands
+settings:
+  event_subscriptions:
+    request_url: https://9f8b-103-140-219-35.ngrok.io/slack/events
+    bot_events:
+      - app_home_opened
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+  interactivity:
+    is_enabled: true
+    request_url: https://9f8b-103-140-219-35.ngrok.io/slack/events
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
