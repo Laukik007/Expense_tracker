@@ -1,131 +1,173 @@
-const { App, subtype } = require("@slack/bolt");
+const { App } = require("@slack/bolt");
+const { createRecord } = require("./airtable");
+const { extractValues } = require("./extractValues");
+
 const dotenv = require("dotenv");
-const { extractTypeOfExpense, extractDate } = require("./helper/extractValues");
-const { makeObj } = require("./helper/makeObj");
 dotenv.config();
 const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
-const slackToken = process.env.SLACK_TOKEN;
-const port = 3000;
+const slackToken = process.env.SLACK_BOT_TOKEN;
+const port = 5000;
 
 const app = new App({
-  token: slackToken,
   signingSecret: slackSigningSecret,
+  token: slackToken,
 });
 
-const data = [];
-app.message("start", async ({ message, say }) => {
-  //console.log("hi");
-  await say({
-    blocks: [
-      {
-        type: "section",
-        text: {
+app.command("/start", async ({ ack, body, client, logger }) => {
+  await ack();
+
+  try {
+    const result = await client.views.open({
+      trigger_id: body.trigger_id,
+
+      view: {
+        type: "modal",
+        callback_id: "view_1",
+        title: {
           type: "plain_text",
-          text: "Welcome to the expense tracker",
-          emoji: true,
+          text: "Modal title",
         },
-      },
-      {
-        type: "divider",
-      },
-      {
-        type: "input",
-        element: {
-          type: "static_select",
-          placeholder: {
-            type: "plain_text",
-            text: "Select an item",
-            emoji: true,
+        blocks: [
+          {
+            block_id: "type_of_expense",
+            type: "input",
+            element: {
+              type: "static_select",
+              placeholder: {
+                type: "plain_text",
+                text: "Select an option",
+                emoji: true,
+              },
+              options: [
+                {
+                  text: {
+                    type: "plain_text",
+                    text: "Business Entertainment",
+                    emoji: true,
+                  },
+                  value: "value-0",
+                },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: "IT softwares",
+                    emoji: true,
+                  },
+                  value: "value-1",
+                },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: "General Expense",
+                    emoji: true,
+                  },
+                  value: "value-2",
+                },
+              ],
+              action_id: "static_select-action",
+            },
+            label: {
+              type: "plain_text",
+              text: "Select the Type of Expense",
+              emoji: true,
+            },
           },
-          options: [
-            {
-              text: {
+          {
+            block_id: "date",
+            type: "input",
+            element: {
+              type: "datepicker",
+              initial_date: "1990-04-28",
+              placeholder: {
                 type: "plain_text",
-                text: "*this is plain_text text*",
+                text: "Select a date",
                 emoji: true,
               },
-              value: "value-0",
+              action_id: "datepicker-action",
             },
-            {
+            label: {
+              type: "plain_text",
+              text: "Select the Date",
+              emoji: true,
+            },
+          },
+          {
+            block_id: "Name",
+            type: "input",
+            element: {
+              type: "plain_text_input",
+              action_id: "plain_text_input-action",
+            },
+            label: {
+              type: "plain_text",
+              text: "Name of the Product",
+              emoji: true,
+            },
+          },
+          {
+            block_id: "Price",
+            type: "input",
+            element: {
+              type: "plain_text_input",
+              action_id: "plain_text_input-action",
+            },
+            label: {
+              type: "plain_text",
+              text: "Price of the Product",
+              emoji: true,
+            },
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "Click to enter upload receipt",
+            },
+            accessory: {
+              type: "button",
               text: {
                 type: "plain_text",
-                text: "*this is plain_text text*",
+                text: "Click Me",
                 emoji: true,
               },
-              value: "value-1",
+              value: "click_me_123",
+              url: "http://localhost:3000/",
+              action_id: "button-action",
             },
-            {
-              text: {
-                type: "plain_text",
-                text: "*this is plain_text text*",
-                emoji: true,
-              },
-              value: "value-2",
+          },
+          {
+            block_id: "Url",
+            type: "input",
+            element: {
+              type: "plain_text_input",
+              action_id: "plain_text_input-action",
             },
-          ],
-          action_id: "type_of_expense",
-        },
-        label: {
+            label: {
+              type: "plain_text",
+              text: "Enter the public url",
+              emoji: true,
+            },
+          },
+        ],
+        submit: {
           type: "plain_text",
-          text: "Please select the type of expense",
-          emoji: true,
+          text: "Submit",
         },
       },
-    ],
-  });
+    });
+    logger.info(result);
+  } catch (error) {
+    logger.error(error);
+  }
 });
 
-app.action("type_of_expense", async ({ ack, say, body, client, logger }) => {
+app.view("view_1", async ({ ack, body, view, client, logger }) => {
   await ack();
-  // console.log(body);
-  //console.log("views state values", views.state.values);
-  // console.log("body state values", body.state.values);
-  data.push(extractTypeOfExpense(body.state.values));
-  await say({
-    blocks: [
-      {
-        type: "input",
-        element: {
-          type: "datepicker",
-          initial_date: "1990-04-28",
-          placeholder: {
-            type: "plain_text",
-            text: "Select a date",
-            emoji: true,
-          },
-          action_id: "datepicker-action",
-        },
-        label: {
-          type: "plain_text",
-          text: "Select the date",
-          emoji: true,
-        },
-      },
-    ],
-  });
-});
-app.action("datepicker-action", async ({ ack, say, body, client, logger }) => {
-  await ack();
-  //console.log("event2", body);
-  data.push(extractDate(body.state.values));
-  await say(
-    "Please enter the description of the product (eg Printer for Business)"
-  );
-  app.message(/^[a-zA-Z ]+$/, async ({ message, say }) => {
-    //console.log(message);
-    data.push(message.text);
-    await say("Enter the price");
-    // console.log(data);
-    app.message(
-      /^[+-]?([0-9]+\.?[0-9]*|\.[0-9]+)$/,
-      async ({ message, say }) => {
-        //console.log(message);
-        data.push(message.text);
-        await say("Upload the receipt");
-        makeObj(data);
-      }
-    );
-  });
+  console.log("view state values", view.state.values);
+  let dataobj = extractValues(view.state.values);
+  console.log(dataobj);
+  const res = await createRecord("Table 1", dataobj);
+  // console.log("res", res);
 });
 
 (async () => {
